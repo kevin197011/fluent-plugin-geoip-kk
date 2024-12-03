@@ -32,15 +32,18 @@ module Fluent
 
       def filter(_tag, _time, record)
         ip_addr = record[@key_name]
-        unless ip_addr.nil?
-          geo_ip = @geoip_cache.getset(ip_addr) { get_geoip(ip_addr) }
 
-          if flatten
-            record.merge! hash_flatten(geo_ip, [@out_key])
-          else
-            record[@out_key] = geo_ip
-          end
+        # Return the record immediately if the IP is invalid or nil
+        return record if ip_addr.nil? || ip_addr == '-'
+
+        geo_ip = @geoip_cache.getset(ip_addr) { get_geoip(ip_addr) }
+
+        if flatten
+          record.merge! hash_flatten(geo_ip, [@out_key])
+        else
+          record[@out_key] = geo_ip
         end
+
         record
       end
 
@@ -49,7 +52,7 @@ module Fluent
       def get_geoip(ip_addr)
         geo_ip = @geoip.lookup(ip_addr)
         data = {}
-        return data if geo_ip.nil?
+        return data if geo_ip.nil? || ip_addr == '-'
 
         data['coordinates'] = [geo_ip.location.longitude, geo_ip.location.latitude] if geo_ip.location
         data['country_code'] = geo_ip.country.iso_code if geo_ip.country
