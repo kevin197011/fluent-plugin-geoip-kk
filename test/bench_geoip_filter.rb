@@ -1,12 +1,14 @@
+# frozen_string_literal: true
+
 require_relative 'helper'
 require 'fluent/plugin/filter_geoip'
 
 # setup
 Fluent::Test.setup
-config = %[
+config = %(
   @type geoip
   out_key geo
-]
+)
 time = Time.now.to_i
 tag = 'foo.bar'
 driver = Fluent::Test::FilterTestDriver.new(Fluent::GeoipFilter, tag).configure(config, true)
@@ -14,12 +16,17 @@ driver = Fluent::Test::FilterTestDriver.new(Fluent::GeoipFilter, tag).configure(
 # bench
 require 'benchmark'
 require 'ipaddr'
-n = 100000
+n = 100_000
 Benchmark.bm(7) do |x|
   # 8192 random IP
-  x.report { driver.run { n.times { driver.emit({'client_ip' => IPAddr.new(rand(2**13)*2**19,Socket::AF_INET).to_s }, time) } } }
+  x.report do
+    driver.run do
+      n.times do
+        driver.emit({ 'client_ip' => IPAddr.new(rand(2**13) * 2**19, Socket::AF_INET).to_s }, time)
+      end
+    end
+  end
 end
-
 
 # Without LRU cache
 #              user     system      total        real
@@ -41,4 +48,3 @@ end
 # (https://github.com/y-ken/fluent-plugin-geoip)
 #              user     system      total        real
 #         11.540000   0.270000  11.810000 ( 12.685000)
-
