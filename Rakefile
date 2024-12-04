@@ -15,5 +15,5 @@ task :push do
   system 'git add .'
   system "git commit -m 'Update #{Time.now}.'"
   system 'git pull'
-  system 'git push origin master'
+  system 'git push origin main'
 end
