@@ -33,6 +33,9 @@ $ sudo td-agent-gem install fluent-plugin-geoip-filter
 ```xml
 <filter access.nginx.**>
   @type geoip
+  # key_name client_ip
+  # database_path /data/geoip/GeoLite2-City.mmdb
+  # out_key geo
 </filter>
 ```
 
@@ -83,7 +86,7 @@ access.nginx: {
     join hashed data by '_'. default false.
 
 
-## VS. 
+## VS.
 [fluent-plugin-geoip](https://github.com/y-ken/fluent-plugin-geoip)
 Fluentd output plugin to geolocate with geoip.
 It is able to customize fields with placeholder.
@@ -118,5 +121,5 @@ Copyright (c) 2015 Yuri Umezaki
 
 [Apache License, Version 2.0.](http://www.apache.org/licenses/LICENSE-2.0)
 
-This product includes GeoLite data created by MaxMind, available from 
+This product includes GeoLite data created by MaxMind, available from
 [http://www.maxmind.com](http://www.maxmind.com).

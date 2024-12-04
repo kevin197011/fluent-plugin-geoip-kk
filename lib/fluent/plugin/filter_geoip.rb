@@ -14,7 +14,6 @@ module Fluent
         super
       end
 
-      # 配置参数
       config_param :database_path, :string, default: "#{File.dirname(__FILE__)}/../../../data/GeoLite2-City.mmdb"
       config_param :key_name, :string, default: 'client_ip'
       config_param :out_key, :string, default: 'geo'
@@ -33,7 +32,6 @@ module Fluent
       def filter(_tag, _time, record)
         ip_addr = record[@key_name]
 
-        # Return the record immediately if the IP is invalid or nil
         return record if ip_addr.nil? || ip_addr == '-'
 
         geo_ip = @geoip_cache.getset(ip_addr) { get_geoip(ip_addr) }
@@ -61,7 +59,6 @@ module Fluent
         data
       end
 
-      # 将嵌套的 Hash 展平
       def hash_flatten(a, keys = [])
         ret = {}
         a.each do |k, v|
