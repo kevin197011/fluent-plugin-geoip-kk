@@ -1,15 +1,11 @@
-# fluent-plugin-geoip-filter
-
-[![Gem Version](https://badge.fury.io/rb/fluent-plugin-geoip-filter.svg)](https://badge.fury.io/rb/fluent-plugin-geoip-filter)
-[![Build Status](https://travis-ci.org/bungoume/fluent-plugin-geoip-filter.svg?branch=master)](https://travis-ci.org/bungoume/fluent-plugin-geoip-filter)
-[![Dependency Status](https://gemnasium.com/bungoume/fluent-plugin-geoip-filter.svg)](https://gemnasium.com/bungoume/fluent-plugin-geoip-filter)
+# fluent-plugin-geoip-kk
 
 [Fluentd](http://fluentd.org) filter plugin to add geoip.
 
 
 ## Requirements
 
-| fluent-plugin-geoip-filter | fluentd    | ruby   |
+| fluent-plugin-geoip-kk | fluentd    | ruby   |
 |----------------------------|------------|--------|
 | >= 1.0.0                   | >= v0.14.0 | >= 2.1 |
 | < 1.0.0                    | >= v0.12.0 | >= 1.9 |
@@ -19,10 +15,10 @@
 
 ```bash
 # for fluentd
-$ gem install fluent-plugin-geoip-filter
+$ gem install fluent-plugin-geoip-kk
 
 # for td-agent2
-$ sudo td-agent-gem install fluent-plugin-geoip-filter
+$ sudo td-agent-gem install fluent-plugin-geoip-kk
 ```
 
 

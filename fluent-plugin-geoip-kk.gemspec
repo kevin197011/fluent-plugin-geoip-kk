@@ -4,11 +4,11 @@ lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
-  spec.name          = 'fluent-plugin-geoip-filter'
+  spec.name          = 'fluent-plugin-geoip-kk'
   spec.version       = '1.0.0'
-  spec.authors       = ['Yuri Umezaki']
-  spec.email         = ['bungoume@gmail.com']
-  spec.homepage      = 'https://github.com/bungoume/fluent-plugin-geoip-filter'
+  spec.authors       = ['kevin197011']
+  spec.email         = ['kevin197011@outlook.com']
+  spec.homepage      = 'https://github.com/kevin197011/fluent-plugin-geoip-kk'
   spec.summary       = 'Fluentd filter plugin to add geoip'
   spec.description   = spec.summary
   spec.license       = 'Apache-2.0'
