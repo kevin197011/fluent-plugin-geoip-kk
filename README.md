@@ -2,12 +2,14 @@
 
 [Fluentd](http://fluentd.org) filter plugin to add geoip.
 
+[![Gem Version](https://badge.fury.io/rb/fluent-plugin-geoip-kk.svg)](https://badge.fury.io/rb/fluent-plugin-geoip-kk)
+[![Ruby](https://github.com/kevin197011/fluent-plugin-geoip-kk/actions/workflows/gem-push.yml/badge.svg)](https://github.com/kevin197011/fluent-plugin-geoip-kk/actions/workflows/gem-push.yml)
 
 ## Requirements
 
 | fluent-plugin-geoip-kk | fluentd    | ruby   |
 |----------------------------|------------|--------|
-| >= 1.0.0                   | >= v0.14.0 | >= 2.1 |
+| >= 1.0.1                   | >= v0.14.0 | >= 2.1 |
 | < 1.0.0                    | >= v0.12.0 | >= 1.9 |
 
 
@@ -94,14 +96,32 @@ It is able to customize fields with placeholder.
     * See [benchmark](test/bench_geoip_filter.rb).
 
 
-## TODO
+## Development
 
-* patches welcome!
+After checking out the repo, run `bundle install` to install dependencies. Then, run `rake test` to run the tests.
 
+To install this gem onto your local machine, run `bundle exec rake install`.
+
+## Publishing
+
+This gem uses GitHub Actions for automated publishing. To publish a new version:
+
+1. Update the version number in `fluent-plugin-geoip-kk.gemspec`
+2. Commit the changes:
+   ```bash
+   git add fluent-plugin-geoip-kk.gemspec
+   git commit -m "Bump version to x.x.x"
+   ```
+3. Create and push a new tag:
+   ```bash
+   git tag vx.x.x
+   git push origin main vx.x.x
+   ```
+4. The GitHub Action will automatically build and publish the gem to RubyGems.org
 
 ## Contributing
 
-1. Fork it ( https://github.com/bungoume/fluent-plugin-geoip-filter/fork )
+1. Fork it ( https://github.com/kevin197011/fluent-plugin-geoip-kk/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
