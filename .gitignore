@@ -1,20 +1,38 @@
+# Gem packaging
 *.gem
-*.rbc
-.bundle
-.config
-.yardoc
-Gemfile.lock
-InstalledFiles
-_yardoc
-coverage
+.bundle/
+vendor/bundle/
+
+# Ruby
+coverage/
+.yardoc/
 doc/
+pkg/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.log
+*.swp
+*~
+tmp/
+
+# Keep vendor/data directory
+!vendor/data/
+
+*.rbc
+.config
 lib/bundler/man
-pkg
 rdoc
 spec/reports
 test/tmp
 test/version_tmp
-tmp
 *.bundle
 *.so
 *.o

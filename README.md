@@ -9,9 +9,43 @@
 
 | fluent-plugin-geoip-kk | fluentd    | ruby   |
 |----------------------------|------------|--------|
-| >= 1.0.2                   | >= v0.14.0 | >= 2.1 |
+| >= 1.0.3                   | >= v0.14.0 | >= 2.1 |
 | < 1.0.0                    | >= v0.12.0 | >= 1.9 |
 
+## GeoIP Database
+
+This plugin comes bundled with the GeoLite2-City database file. The plugin will automatically search for the database file in the following locations (in order of preference):
+
+1. Custom path specified in configuration
+2. Current working directory: `./vendor/data/GeoLite2-City.mmdb`
+3. Gem installation directory: `$(gem environment gemdir)/gems/fluent-plugin-geoip-kk-[VERSION]/vendor/data/GeoLite2-City.mmdb`
+4. System-wide locations:
+   - `/usr/share/GeoIP/GeoLite2-City.mmdb`
+   - `/usr/local/share/GeoIP/GeoLite2-City.mmdb`
+5. Legacy path (for backward compatibility)
+
+You can override the database path in your configuration:
+
+```xml
+<filter access.nginx.**>
+  @type geoip
+  database_path /path/to/your/GeoLite2-City.mmdb  # Optional: defaults to auto-discovery
+  # ... other configurations ...
+</filter>
+```
+
+Note: The bundled database is from MaxMind's GeoLite2 Free Database. For production use, you might want to:
+1. Use your own licensed MaxMind database
+2. Regularly update the database file
+3. Configure a custom path to the database file
+
+### Database Auto-Discovery
+
+The plugin will automatically find and use the GeoIP database file. If you need to check which database file is being used, you can find this information in the Fluentd logs when the plugin starts:
+
+```
+2024-01-28 12:00:00 +0000 [info]: Found GeoIP database path=/path/to/found/database.mmdb
+```
 
 ## Installation
 

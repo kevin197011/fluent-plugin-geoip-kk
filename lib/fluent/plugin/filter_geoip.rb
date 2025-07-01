@@ -15,9 +15,10 @@ module Fluent
       # Default cache size (number of IP addresses to cache)
       DEFAULT_CACHE_SIZE = 8192
       DEFAULT_CACHE_TTL = 3600 # 1 hour in seconds
+      DEFAULT_DB_FILENAME = 'GeoLite2-City.mmdb'
 
       desc 'Path to the GeoIP database file'
-      config_param :database_path, :string, default: "#{File.dirname(__FILE__)}/../../../data/GeoLite2-City.mmdb"
+      config_param :database_path, :string, default: nil
 
       desc 'Field name that contains the IP address'
       config_param :key_name, :string, default: 'client_ip'
@@ -46,6 +47,8 @@ module Fluent
       def configure(conf)
         super
 
+        @database_path = resolve_database_path
+
         unless File.exist?(@database_path)
           raise Fluent::ConfigError, "GeoIP database file '#{@database_path}' does not exist"
         end
@@ -63,7 +66,10 @@ module Fluent
         # Initialize cache with TTL support
         @geoip_cache = LruRedux::TTL::Cache.new(@cache_size, @cache_ttl)
 
-        log.info 'Initialized GeoIP filter', database: @database_path, cache_size: @cache_size, cache_ttl: @cache_ttl
+        log.info 'Initialized GeoIP filter',
+                 database: @database_path,
+                 cache_size: @cache_size,
+                 cache_ttl: @cache_ttl
       end
 
       def filter(tag, time, record)
@@ -94,6 +100,34 @@ module Fluent
       end
 
       private
+
+      def resolve_database_path
+        return database_path if database_path && !database_path.empty?
+
+        # Search paths in order of preference
+        search_paths = [
+          # 1. Current directory
+          File.join(Dir.pwd, 'vendor/data', DEFAULT_DB_FILENAME),
+          # 2. Gem vendor directory
+          File.expand_path("../../../vendor/data/#{DEFAULT_DB_FILENAME}", __FILE__),
+          # 3. System-wide locations
+          '/usr/share/GeoIP/GeoLite2-City.mmdb',
+          '/usr/local/share/GeoIP/GeoLite2-City.mmdb',
+          # 4. Legacy path (for backward compatibility)
+          File.expand_path("../../../data/#{DEFAULT_DB_FILENAME}", __FILE__)
+        ]
+
+        # Find first existing database file
+        found_path = search_paths.find { |path| File.exist?(path) }
+
+        unless found_path
+          available_paths = search_paths.join("\n  ")
+          raise Fluent::ConfigError, "Could not find GeoIP database file. Searched in:\n  #{available_paths}"
+        end
+
+        log.info 'Found GeoIP database', path: found_path
+        found_path
+      end
 
       def get_geoip(ip_addr)
         geo_ip = @geoip.lookup(ip_addr)

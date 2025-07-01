@@ -13,10 +13,26 @@ Gem::Specification.new do |spec|
   spec.description   = 'A Fluentd filter plugin that adds GeoIP information to records. Supports both legacy GeoIP and GeoIP2 databases, with LRU caching for improved performance.'
   spec.license       = 'Apache-2.0'
 
-  spec.files         = `git ls-files -z`.split("\x0")
+  # Include all git tracked files and vendor/data directory
+  spec.files = Dir[
+    'lib/**/*',
+    'vendor/**/*',
+    'Gemfile',
+    'LICENSE',
+    'README.md',
+    'Rakefile',
+    '*.gemspec'
+  ]
+
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
+
+  # Ensure vendor/data directory is included
+  spec.metadata = {
+    'data_dir' => 'vendor/data',
+    'database_file' => 'GeoLite2-City.mmdb'
+  }
 
   spec.add_runtime_dependency 'fluentd', ['>= 0.14.0', '< 2']
   spec.add_runtime_dependency 'geoip', '~> 0.1', '>= 0.1.22'
