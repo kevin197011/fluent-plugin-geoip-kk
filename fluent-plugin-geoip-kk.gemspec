@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'fluent-plugin-geoip-kk'
-  spec.version       = '1.0.2'
+  spec.version       = '1.0.3'
   spec.authors       = ['kevin197011']
   spec.email         = ['kevin197011@outlook.com']
   spec.homepage      = 'https://github.com/kevin197011/fluent-plugin-geoip-kk'
