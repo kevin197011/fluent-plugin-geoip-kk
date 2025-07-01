@@ -9,7 +9,7 @@
 
 | fluent-plugin-geoip-kk | fluentd    | ruby   |
 |----------------------------|------------|--------|
-| >= 1.0.1                   | >= v0.14.0 | >= 2.1 |
+| >= 1.0.2                   | >= v0.14.0 | >= 2.1 |
 | < 1.0.0                    | >= v0.12.0 | >= 1.9 |
 
 
@@ -23,66 +23,149 @@ $ gem install fluent-plugin-geoip-kk
 $ sudo td-agent-gem install fluent-plugin-geoip-kk
 ```
 
+## Configuration Parameters
 
-## Usage
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| key_name | string | client_ip | Field name that contains the IP address |
+| out_key | string | geo | Output field name to store GeoIP data |
+| database_path | string | data/GeoLite2-City.mmdb | Path to the GeoIP database file |
+| flatten | bool | false | Flatten the GeoIP data structure |
+| cache_size | integer | 8192 | Size of the LRU cache |
+| cache_ttl | integer | 3600 | TTL for cached items in seconds |
+| skip_private_ip | bool | true | Skip adding GeoIP data for private IP addresses |
 
-### Example 1:
+## Usage Examples
+
+### Basic Configuration
 
 ```xml
 <filter access.nginx.**>
   @type geoip
-  # key_name client_ip
-  # database_path /data/geoip/GeoLite2-City.mmdb
-  # out_key geo
+  key_name client_ip
+  out_key geo
 </filter>
 ```
 
-Assuming following inputs are coming:
+### Advanced Configuration
+
+```xml
+<filter access.nginx.**>
+  @type geoip
+
+  # IP address field configuration
+  key_name client_ip
+  out_key geo
+
+  # Database configuration
+  database_path /path/to/GeoLite2-City.mmdb
+
+  # Cache configuration
+  cache_size 10000    # Cache up to 10000 IP addresses
+  cache_ttl 3600      # Cache TTL: 1 hour
+
+  # Output configuration
+  flatten false       # Keep nested structure
+
+  # IP processing configuration
+  skip_private_ip true  # Skip private IP addresses
+</filter>
+```
+
+### Input Example
 
 ```json
-access.nginx: {
-  "client_ip":"93.184.216.34",
-  "scheme":"http", "method":"GET", "host":"example.com",
-  "path":"/", "query":"-", "req_bytes":200, "referer":"-",
-  "status":200, "res_bytes":800, "res_body_bytes":600, "taken_time":0.001, "user_agent":"Mozilla/5.0"
+{
+  "client_ip": "93.184.216.34",
+  "scheme": "http",
+  "method": "GET",
+  "host": "example.com",
+  "path": "/",
+  "query": "-",
+  "req_bytes": 200,
+  "referer": "-",
+  "status": 200,
+  "res_bytes": 800,
+  "res_body_bytes": 600,
+  "taken_time": 0.001,
+  "user_agent": "Mozilla/5.0"
 }
 ```
 
-then output bocomes as belows:
+### Output Example (Default Structure)
 
 ```json
-access.nginx: {
-  "client_ip":"93.184.216.34",
-  "scheme":"http", "method":"GET", "host":"example.com",
-  "path":"/", "query":"-", "req_bytes":200, "referer":"-",
-  "status":200, "res_bytes":800, "res_body_bytes":600, "taken_time":0.001, "user_agent":"Mozilla/5.0",
+{
+  "client_ip": "93.184.216.34",
+  "scheme": "http",
+  "method": "GET",
+  // ... other original fields ...
   "geo": {
-    "coordinates": [-70.8228, 42.150800000000004],
-    "country_code": "US",
-    "city": "Norwell",
-    "region_code": "MA",
+    "coordinates": {
+      "latitude": 42.150800000000004,
+      "longitude": -70.8228,
+      "accuracy_radius": 100
+    },
+    "country": {
+      "code": "US",
+      "name": "United States"
+    },
+    "city": {
+      "name": "Norwell",
+      "confidence": 90
+    },
+    "region": {
+      "code": "MA",
+      "name": "Massachusetts"
+    },
+    "postal": {
+      "code": "02061",
+      "confidence": 95
+    },
+    "timezone": "America/New_York"
   }
 }
 ```
 
+### Output Example (Flattened Structure)
 
-## Parameters
-- key_name *field_key*
+When `flatten true` is specified:
 
-    Target key name. default client_ip.
+```json
+{
+  "client_ip": "93.184.216.34",
+  // ... other original fields ...
+  "geo_coordinates_latitude": 42.150800000000004,
+  "geo_coordinates_longitude": -70.8228,
+  "geo_coordinates_accuracy_radius": 100,
+  "geo_country_code": "US",
+  "geo_country_name": "United States",
+  "geo_city_name": "Norwell",
+  "geo_city_confidence": 90,
+  "geo_region_code": "MA",
+  "geo_region_name": "Massachusetts",
+  "geo_postal_code": "02061",
+  "geo_postal_confidence": 95,
+  "geo_timezone": "America/New_York"
+}
+```
 
-- out_key *string*
+## Performance Optimization
 
-    Output prefix key name. default geo.
+The plugin includes several performance optimizations:
 
-- database_path *file_path*
+1. LRU Cache with TTL
+   - Caches GeoIP lookups to reduce database access
+   - Configurable cache size and TTL
+   - Automatic cache cleanup for expired entries
 
-    Database file(GeoIPCity.dat) path.
-    Get from [MaxMind](http://dev.maxmind.com/geoip/legacy/geolite/)
+2. Skip Private IPs
+   - Optionally skip processing private IP addresses
+   - Reduces unnecessary database lookups
 
-- flatten *bool*
-    join hashed data by '_'. default false.
-
+3. Efficient Record Access
+   - Uses Fluentd's record accessor for optimized field access
+   - Reduces memory allocations
 
 ## VS.
 [fluent-plugin-geoip](https://github.com/y-ken/fluent-plugin-geoip)
@@ -94,7 +177,6 @@ It is able to customize fields with placeholder.
     * ( fluent-plugin-geoip use geoip-c gem but our plugin use geoip. It's conflict. )
 * 5-10 times faster by the LRU cache.
     * See [benchmark](test/bench_geoip_filter.rb).
-
 
 ## Development
 
@@ -127,11 +209,9 @@ This gem uses GitHub Actions for automated publishing. To publish a new version:
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
 
-
 ## Copyright
 
 Copyright (c) 2015 Yuri Umezaki
-
 
 ## License
 
