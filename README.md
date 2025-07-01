@@ -9,43 +9,17 @@
 
 | fluent-plugin-geoip-kk | fluentd    | ruby   |
 |----------------------------|------------|--------|
-| >= 1.0.3                   | >= v0.14.0 | >= 2.1 |
+| >= 1.0.5                   | >= v0.14.0 | >= 2.1 |
 | < 1.0.0                    | >= v0.12.0 | >= 1.9 |
 
-## GeoIP Database
+## Features
 
-This plugin comes bundled with the GeoLite2-City database file. The plugin will automatically search for the database file in the following locations (in order of preference):
-
-1. Custom path specified in configuration
-2. Current working directory: `./vendor/data/GeoLite2-City.mmdb`
-3. Gem installation directory: `$(gem environment gemdir)/gems/fluent-plugin-geoip-kk-[VERSION]/vendor/data/GeoLite2-City.mmdb`
-4. System-wide locations:
-   - `/usr/share/GeoIP/GeoLite2-City.mmdb`
-   - `/usr/local/share/GeoIP/GeoLite2-City.mmdb`
-5. Legacy path (for backward compatibility)
-
-You can override the database path in your configuration:
-
-```xml
-<filter access.nginx.**>
-  @type geoip
-  database_path /path/to/your/GeoLite2-City.mmdb  # Optional: defaults to auto-discovery
-  # ... other configurations ...
-</filter>
-```
-
-Note: The bundled database is from MaxMind's GeoLite2 Free Database. For production use, you might want to:
-1. Use your own licensed MaxMind database
-2. Regularly update the database file
-3. Configure a custom path to the database file
-
-### Database Auto-Discovery
-
-The plugin will automatically find and use the GeoIP database file. If you need to check which database file is being used, you can find this information in the Fluentd logs when the plugin starts:
-
-```
-2024-01-28 12:00:00 +0000 [info]: Found GeoIP database path=/path/to/found/database.mmdb
-```
+- Automatic database handling (compressed/uncompressed)
+- Memory-optimized database loading
+- LRU caching for high-performance lookups
+- Support for both legacy GeoIP and GeoIP2 databases
+- Private IP address filtering
+- Flexible output formatting (nested/flattened)
 
 ## Installation
 
@@ -63,11 +37,12 @@ $ sudo td-agent-gem install fluent-plugin-geoip-kk
 |-----------|------|---------|-------------|
 | key_name | string | client_ip | Field name that contains the IP address |
 | out_key | string | geo | Output field name to store GeoIP data |
-| database_path | string | data/GeoLite2-City.mmdb | Path to the GeoIP database file |
+| database_path | string | auto-detect | Path to the GeoIP database file (supports .mmdb and .mmdb.gz) |
 | flatten | bool | false | Flatten the GeoIP data structure |
 | cache_size | integer | 8192 | Size of the LRU cache |
 | cache_ttl | integer | 3600 | TTL for cached items in seconds |
 | skip_private_ip | bool | true | Skip adding GeoIP data for private IP addresses |
+| memory_cache | bool | true | Keep database in memory for better performance |
 
 ## Usage Examples
 
@@ -92,11 +67,12 @@ $ sudo td-agent-gem install fluent-plugin-geoip-kk
   out_key geo
 
   # Database configuration
-  database_path /path/to/GeoLite2-City.mmdb
+  database_path /path/to/your/GeoLite2-City.mmdb.gz  # Optional: supports both .mmdb and .mmdb.gz
 
-  # Cache configuration
-  cache_size 10000    # Cache up to 10000 IP addresses
-  cache_ttl 3600      # Cache TTL: 1 hour
+  # Performance optimization
+  memory_cache true     # Keep database in memory (recommended)
+  cache_size 10000     # LRU cache size
+  cache_ttl 3600      # Cache TTL in seconds
 
   # Output configuration
   flatten false       # Keep nested structure
@@ -106,34 +82,12 @@ $ sudo td-agent-gem install fluent-plugin-geoip-kk
 </filter>
 ```
 
-### Input Example
+### Output Examples
 
+#### Default Structure (flatten: false)
 ```json
 {
   "client_ip": "93.184.216.34",
-  "scheme": "http",
-  "method": "GET",
-  "host": "example.com",
-  "path": "/",
-  "query": "-",
-  "req_bytes": 200,
-  "referer": "-",
-  "status": 200,
-  "res_bytes": 800,
-  "res_body_bytes": 600,
-  "taken_time": 0.001,
-  "user_agent": "Mozilla/5.0"
-}
-```
-
-### Output Example (Default Structure)
-
-```json
-{
-  "client_ip": "93.184.216.34",
-  "scheme": "http",
-  "method": "GET",
-  // ... other original fields ...
   "geo": {
     "coordinates": {
       "latitude": 42.150800000000004,
@@ -161,14 +115,10 @@ $ sudo td-agent-gem install fluent-plugin-geoip-kk
 }
 ```
 
-### Output Example (Flattened Structure)
-
-When `flatten true` is specified:
-
+#### Flattened Structure (flatten: true)
 ```json
 {
   "client_ip": "93.184.216.34",
-  // ... other original fields ...
   "geo_coordinates_latitude": 42.150800000000004,
   "geo_coordinates_longitude": -70.8228,
   "geo_coordinates_accuracy_radius": 100,
@@ -186,31 +136,37 @@ When `flatten true` is specified:
 
 ## Performance Optimization
 
-The plugin includes several performance optimizations:
+### Memory Usage vs Performance
 
-1. LRU Cache with TTL
-   - Caches GeoIP lookups to reduce database access
-   - Configurable cache size and TTL
-   - Automatic cache cleanup for expired entries
+The plugin offers two modes for database handling:
 
-2. Skip Private IPs
-   - Optionally skip processing private IP addresses
-   - Reduces unnecessary database lookups
+1. Memory Mode (Default, Recommended)
+   - Loads entire database into memory
+   - Fastest lookup performance
+   - Higher memory usage (~56MB for GeoLite2-City)
+   - Best for production environments
 
-3. Efficient Record Access
-   - Uses Fluentd's record accessor for optimized field access
-   - Reduces memory allocations
+2. File Mode
+   - Keeps database on disk
+   - Lower memory usage
+   - Slightly slower lookups due to disk I/O
+   - Suitable for memory-constrained environments
 
-## VS.
-[fluent-plugin-geoip](https://github.com/y-ken/fluent-plugin-geoip)
-Fluentd output plugin to geolocate with geoip.
-It is able to customize fields with placeholder.
+### Caching Strategy
 
-* Easy to install.
-    * Not require to install Development Tools and geoip-dev library.
-    * ( fluent-plugin-geoip use geoip-c gem but our plugin use geoip. It's conflict. )
-* 5-10 times faster by the LRU cache.
-    * See [benchmark](test/bench_geoip_filter.rb).
+- LRU (Least Recently Used) cache with TTL
+- Default cache size: 8192 entries
+- Default TTL: 3600 seconds (1 hour)
+- Adjust based on your traffic patterns:
+  - High unique IPs: Increase cache_size
+  - Stable IP patterns: Increase cache_ttl
+
+### Database Compression
+
+- Database is distributed in compressed format (.mmdb.gz)
+- Automatic handling of compressed/uncompressed files
+- ~52% size reduction (56MB → 27MB)
+- No performance impact when using memory_cache
 
 ## Development
 
@@ -242,10 +198,6 @@ This gem uses GitHub Actions for automated publishing. To publish a new version:
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
-
-## Copyright
-
-Copyright (c) 2015 Yuri Umezaki
 
 ## License
 

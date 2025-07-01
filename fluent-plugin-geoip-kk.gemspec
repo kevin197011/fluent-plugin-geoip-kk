@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'fluent-plugin-geoip-kk'
-  spec.version       = '1.0.3'
+  spec.version       = '1.0.5'
   spec.authors       = ['kevin197011']
   spec.email         = ['kevin197011@outlook.com']
   spec.homepage      = 'https://github.com/kevin197011/fluent-plugin-geoip-kk'
@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   # Include all git tracked files and vendor/data directory
   spec.files = Dir[
     'lib/**/*',
-    'vendor/**/*',
+    'vendor/**/*.mmdb.gz',
     'Gemfile',
     'LICENSE',
     'README.md',
@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   # Ensure vendor/data directory is included
   spec.metadata = {
     'data_dir' => 'vendor/data',
-    'database_file' => 'GeoLite2-City.mmdb'
+    'database_file' => 'GeoLite2-City.mmdb.gz'
   }
 
   spec.add_runtime_dependency 'fluentd', ['>= 0.14.0', '< 2']

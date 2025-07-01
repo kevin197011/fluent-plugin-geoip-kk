@@ -4,6 +4,8 @@ require 'maxminddb'
 require 'lru_redux'
 require 'fluent/plugin/filter'
 require 'ipaddr'
+require 'zlib'
+require 'stringio'
 
 module Fluent
   module Plugin
@@ -38,24 +40,37 @@ module Fluent
       desc 'Skip adding GeoIP data for private IP addresses'
       config_param :skip_private_ip, :bool, default: true
 
+      desc 'Keep database in memory'
+      config_param :memory_cache, :bool, default: true
+
       def initialize
         super
         @geoip = nil
         @ip_accessor = nil
+        @database_data = nil
       end
 
       def configure(conf)
         super
 
+        start_time = Time.now
         @database_path = resolve_database_path
-
-        unless File.exist?(@database_path)
-          raise Fluent::ConfigError, "GeoIP database file '#{@database_path}' does not exist"
-        end
 
         # Initialize MaxMindDB
         begin
-          @geoip = MaxMindDB.new(@database_path)
+          if @memory_cache
+            @database_data = load_database(@database_path)
+            @geoip = MaxMindDB.new(StringIO.new(@database_data))
+          else
+            @geoip = MaxMindDB.new(decompress_if_needed(@database_path))
+          end
+
+          load_time = Time.now - start_time
+          log.info 'Loaded GeoIP database',
+                   database: @database_path,
+                   size: format_size(@database_data ? @database_data.size : File.size(@database_path)),
+                   compressed_size: format_size(File.size(@database_path)),
+                   load_time: format_time(load_time)
         rescue StandardError => e
           raise Fluent::ConfigError, "Failed to load GeoIP database: #{e.message}"
         end
@@ -69,7 +84,13 @@ module Fluent
         log.info 'Initialized GeoIP filter',
                  database: @database_path,
                  cache_size: @cache_size,
-                 cache_ttl: @cache_ttl
+                 cache_ttl: @cache_ttl,
+                 memory_cache: @memory_cache
+      end
+
+      def shutdown
+        super
+        @temp_db.unlink if @temp_db && File.exist?(@temp_db.path)
       end
 
       def filter(tag, time, record)
@@ -108,13 +129,13 @@ module Fluent
         search_paths = [
           # 1. Current directory
           File.join(Dir.pwd, 'vendor/data', DEFAULT_DB_FILENAME),
+          File.join(Dir.pwd, 'vendor/data', "#{DEFAULT_DB_FILENAME}.gz"),
           # 2. Gem vendor directory
           File.expand_path("../../../vendor/data/#{DEFAULT_DB_FILENAME}", __FILE__),
+          File.expand_path("../../../vendor/data/#{DEFAULT_DB_FILENAME}.gz", __FILE__),
           # 3. System-wide locations
           '/usr/share/GeoIP/GeoLite2-City.mmdb',
-          '/usr/local/share/GeoIP/GeoLite2-City.mmdb',
-          # 4. Legacy path (for backward compatibility)
-          File.expand_path("../../../data/#{DEFAULT_DB_FILENAME}", __FILE__)
+          '/usr/local/share/GeoIP/GeoLite2-City.mmdb'
         ]
 
         # Find first existing database file
@@ -129,29 +150,72 @@ module Fluent
         found_path
       end
 
+      def load_database(path)
+        if path.end_with?('.gz')
+          Zlib::GzipReader.open(path, &:read)
+        else
+          File.binread(path)
+        end
+      end
+
+      def decompress_if_needed(path)
+        return path unless path.end_with?('.gz')
+
+        decompressed_path = path.chomp('.gz')
+        unless File.exist?(decompressed_path)
+          File.open(decompressed_path, 'wb') do |file|
+            Zlib::GzipReader.open(path) do |gz|
+              file.write(gz.read)
+            end
+          end
+        end
+        decompressed_path
+      end
+
+      def format_size(bytes)
+        units = %w[B KB MB GB]
+        size = bytes.to_f
+        unit_index = 0
+
+        while size > 1024 && unit_index < units.length - 1
+          size /= 1024
+          unit_index += 1
+        end
+
+        format('%.2f %s', size, units[unit_index])
+      end
+
+      def format_time(seconds)
+        if seconds < 1
+          format('%.2f ms', seconds * 1000)
+        else
+          format('%.2f s', seconds)
+        end
+      end
+
       def get_geoip(ip_addr)
         geo_ip = @geoip.lookup(ip_addr)
         return {} if geo_ip.nil?
 
         result = {}
 
-        if coordinates = get_coordinates(geo_ip)
+        if (coordinates = get_coordinates(geo_ip))
           result['coordinates'] = coordinates
         end
 
-        if country = get_country_info(geo_ip)
+        if (country = get_country_info(geo_ip))
           result['country'] = country
         end
 
-        if city = get_city_info(geo_ip)
+        if (city = get_city_info(geo_ip))
           result['city'] = city
         end
 
-        if region = get_region_info(geo_ip)
+        if (region = get_region_info(geo_ip))
           result['region'] = region
         end
 
-        if postal = get_postal_info(geo_ip)
+        if (postal = get_postal_info(geo_ip))
           result['postal'] = postal
         end
 

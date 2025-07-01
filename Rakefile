@@ -12,6 +12,7 @@ Rake::TestTask.new(:test) do |test|
 end
 
 task :push do
+  system 'rubocop -A'
   system 'git add .'
   system "git commit -m 'Update #{Time.now}.'"
   system 'git pull'
